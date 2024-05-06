@@ -1,6 +1,11 @@
+*** Settings ***
+Library 	Selenium2Library
+
 *** Test Cases ***
 TC1
-	${a}	Set Variable	010
-	${x}	Convert to Integer	${a}
-	Log 	${x}	warn	
+	Open browser	https://google.com
+	Wait until element is visible	//textarea[@name='q']
+	Input Text	//textarea[@name='q']	Google
+	Press key	None	ENTER
+	Close browser
 
