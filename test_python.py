@@ -9,6 +9,8 @@ from endpoints import *
 from utilities import *
 from playwright.sync_api import sync_playwright
 
+api_obj = APIFramework()
+
 @pytest.fixture
 def api_session():
     return requests.Session()
