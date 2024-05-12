@@ -30,3 +30,36 @@ def pytest_html_results_table_row(report, cells):
         cells.insert(2, f"<td>{report.description}</td>")
     else:
         cells.insert(2, "<td>No description available</td>")
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--influxdb-host",
+        action="store",
+        default="172.17.0.4",
+        help="InfluxDB host address"
+    )
+    parser.addoption(
+        "--influxdb-port",
+        action="store",
+        default="8086",
+        help="InfluxDB port number"
+    )
+    parser.addoption(
+        "--influxdb-database",
+        action="store",
+        default="pytest_results",
+        help="InfluxDB database name"
+    )
+
+@pytest.fixture(scope='session')
+def influxdb_host(request):
+    return request.config.getoption("--influxdb-host")
+
+@pytest.fixture(scope='session')
+def influxdb_port(request):
+    return request.config.getoption("--influxdb-port")
+
+@pytest.fixture(scope='session')
+def influxdb_database(request):
+    return request.config.getoption("--influxdb-database")
