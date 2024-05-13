@@ -2,16 +2,22 @@ import pytest
 import mysql.connector
 from datetime import datetime
 
+def pytest_addoption(parser):
+    parser.addoption("--mysql-reporter", action="store_true", help="Enable MySQL test reporter")
+
 class MySQLReporter(pytest.TerminalReporter):
     def __init__(self, config):
         super().__init__(config)
-        self.db_connection = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="Sirma@123",
-            database="testdb"
-        )
-        self.cursor = self.db_connection.cursor()
+        if config.getoption("--mysql-reporter"):
+            self.db_connection = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="Sirma@123",
+                database="testdb"
+            )
+            self.cursor = self.db_connection.cursor()
+        else:
+            self.db_connection = None
 
     def pytest_runtest_logreport(self, report):
         if report.when == "call":
