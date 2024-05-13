@@ -46,8 +46,8 @@ def insert_test_data(request):
     
         # Insert test result into the database
         insert_query = """
-            INSERT INTO pytest_results (test_case_name, start_time, response_time, results, fail_reason)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO testdb.pytest_results (test_name, start_time, response_time, results, fail_reason)
+            VALUES (SUBSTRING_INDEX(test_case_name, '::', -1), %s, %s, %s, %s);
         """
         cursor.execute(insert_query, (test_case_name, start_time, response_time, results, fail_reason))
         connection.commit()
