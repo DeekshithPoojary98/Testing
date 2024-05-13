@@ -5,9 +5,9 @@ from datetime import datetime
 def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
-        user="your_username",
-        password="your_password",
-        database="your_database"
+        user="root",
+        password="Sirma@123",
+        database="testdb"
     )
 
 @pytest.fixture(scope="function", autouse=True)
