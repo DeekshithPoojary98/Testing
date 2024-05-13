@@ -1,6 +1,7 @@
 import pytest
 import mysql.connector
 from datetime import datetime
+import traceback
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -23,15 +24,25 @@ def insert_test_data(request):
 
     def teardown():
         test_case_name = request.node.nodeid
-        status = "passed" if request.node.rep_setup.passed else "failed"
-        fail_reason = request.node.rep_setup.longreprtext if request.node.rep_setup.failed else None
-
+        status = "passed"
+        fail_reason = None
+    
+        try:
+            request.node.rep_setup.failed
+        except AssertionError as e:
+            status = "failed"
+            fail_reason = str(e)
+        except Exception as e:
+            status = "error"
+            fail_reason = traceback.format_exc()
+    
         insert_query = """
             INSERT INTO pytest_results (test_case_name, start_time, status, fail_reason)
             VALUES (%s, %s, %s, %s)
         """
         cursor.execute(insert_query, (test_case_name, start_time, status, fail_reason))
         connection.commit()
+    
         cursor.close()
         connection.close()
 
