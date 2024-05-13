@@ -23,6 +23,7 @@ def insert_test_data(request):
 
     def teardown():
         test_case_name = request.node.nodeid
+        test_case_name = test_case_name.split('::')[-1]
         end_time = datetime.now()
         results = "passed"
         fail_reason = None
