@@ -1,7 +1,39 @@
 import pytest
+import mysql.connector
+from datetime import datetime
 
-def test_example():
-    assert 1 == 1  # This test will pass
+def get_db_connection():
+    return mysql.connector.connect(
+        host="localhost",
+        user="your_username",
+        password="your_password",
+        database="your_database"
+    )
 
-def test_another_example():
-    assert 1 == 2  # This test will fail
+@pytest.fixture(scope="function", autouse=True)
+def insert_test_data(request):
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    def teardown():
+        test_case_name = request.node.nodeid
+        start_time = datetime.fromtimestamp(request.node.start_time)
+        status = "passed" if request.node.rep_setup.passed else "failed"
+        fail_reason = request.node.rep_setup.longreprtext if request.node.rep_setup.failed else None
+
+        insert_query = """
+            INSERT INTO pytest_results (test_case_name, start_time, status, fail_reason)
+            VALUES (%s, %s, %s, %s)
+        """
+        cursor.execute(insert_query, (test_case_name, start_time, status, fail_reason))
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+    request.addfinalizer(teardown)
+
+def test_pass():
+    assert True
+
+def test_fail():
+    assert False
