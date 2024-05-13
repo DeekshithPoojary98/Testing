@@ -23,23 +23,30 @@ def insert_test_data(request):
 
     def teardown():
         test_case_name = request.node.nodeid
+        end_time = datetime.now()
         results = "passed"
         fail_reason = None
     
         try:
-            request.node.rep_setup.failed
-        except AssertionError as e:
-            results = "failed"
-            fail_reason = str(e)
+            # Check if the test setup failed
+            if request.node.rep_setup.failed:
+                results = "error"
+                fail_reason = "Test setup failed"
+            else:
+                # Check if the test case failed
+                if request.node.rep_call.failed:
+                    results = "failed"
+                    fail_reason = str(request.node.rep_call.longrepr)
         except Exception as e:
             results = "error"
-            fail_reason = traceback.format_exc()
+            fail_reason = str(e)
     
+        # Insert test result into the database
         insert_query = """
-            INSERT INTO pytest_results (test_case_name, start_time, results, fail_reason)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO pytest_results (test_case_name, start_time, end_time, results, fail_reason)
+            VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(insert_query, (test_case_name, start_time, results, fail_reason))
+        cursor.execute(insert_query, (test_case_name, start_time, end_time, results, fail_reason))
         connection.commit()
     
         cursor.close()
