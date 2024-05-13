@@ -4,7 +4,7 @@ from datetime import datetime
 
 def get_db_connection():
     return mysql.connector.connect(
-        host="localhost",
+        host="host.docker.internal",  # or replace with the actual IP address of your host machine
         user="root",
         password="Sirma@123",
         database="testdb"
@@ -15,9 +15,14 @@ def insert_test_data(request):
     connection = get_db_connection()
     cursor = connection.cursor()
 
+    start_time = None
+
+    def setup():
+        nonlocal start_time
+        start_time = datetime.now()
+
     def teardown():
         test_case_name = request.node.nodeid
-        start_time = datetime.fromtimestamp(request.node.start_time)
         status = "passed" if request.node.rep_setup.passed else "failed"
         fail_reason = request.node.rep_setup.longreprtext if request.node.rep_setup.failed else None
 
@@ -31,6 +36,7 @@ def insert_test_data(request):
         connection.close()
 
     request.addfinalizer(teardown)
+    request.addfinalizer(setup)
 
 def test_pass():
     assert True
