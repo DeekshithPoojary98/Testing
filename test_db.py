@@ -41,16 +41,20 @@ def insert_test_data(request):
             results = "error"
             fail_reason = str(e)
     
+        # Calculate response time
+        response_time = (end_time - start_time).total_seconds()
+    
         # Insert test result into the database
         insert_query = """
-            INSERT INTO pytest_results (test_case_name, start_time, end_time, results, fail_reason)
+            INSERT INTO pytest_results (test_case_name, start_time, response_time, results, fail_reason)
             VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(insert_query, (test_case_name, start_time, end_time, results, fail_reason))
+        cursor.execute(insert_query, (test_case_name, start_time, response_time, results, fail_reason))
         connection.commit()
     
         cursor.close()
         connection.close()
+
         
     request.addfinalizer(teardown)
     setup()
