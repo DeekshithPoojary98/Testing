@@ -40,7 +40,7 @@ def insert_test_data(request):
             INSERT INTO pytest_results (test_case_name, start_time, status, fail_reason)
             VALUES (%s, %s, %s, %s)
         """
-        cursor.execute(insert_query, (test_case_name, start_time, status, fail_reason))
+        cursor.execute(insert_query, (test_case_name, start_time, results, fail_reason))
         connection.commit()
     
         cursor.close()
