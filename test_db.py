@@ -35,10 +35,10 @@ def insert_test_data(request):
             fail_reason = traceback.format_exc()
 
         insert_query = """
-            INSERT INTO pytest_results (test_case_name, start_time, status, fail_reason)
+            INSERT INTO pytest_results (test_case_name, start_time, results, fail_reason)
             VALUES (%s, %s, %s, %s)
         """
-        cursor.execute(insert_query, (test_case_name, start_time, results, fail_reason))
+        cursor.execute(insert_query, (test_case_name, start_time, status, fail_reason))
         connection.commit()
 
         cursor.close()
