@@ -7,9 +7,9 @@ class MySQLReporter(pytest.TerminalReporter):
         super().__init__(config)
         self.db_connection = mysql.connector.connect(
             host="localhost",
-            user="your_username",
-            password="your_password",
-            database="your_database"
+            user="root",
+            password="Sirma@123",
+            database="testdb"
         )
         self.cursor = self.db_connection.cursor()
 
