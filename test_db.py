@@ -58,7 +58,7 @@ def insert_test_data(request):
                 if request.node.rep_call.failed:
                     results = "failed"
                     fail_reason = str(request.node.rep_call.longrepr)
-                    fail_resaon = extract_error_message(fail_reason)
+                    fail_reason = extract_error_message(fail_reason)
         except Exception as e:
             results = "error"
             fail_reason = str(e)
