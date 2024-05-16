@@ -16,7 +16,7 @@ api_obj = APIFramework()
 
 def extract_error_message(text):
     pattern = r'\b\w*Error:'
-    match = re.search(pattern, text)
+    match = re.findall(pattern, text)
 
     if len(match)!=0:
         result = match[0].replace(":","")
