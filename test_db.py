@@ -47,7 +47,7 @@ def insert_test_data(request):
         test_case_name = test_case_name.split('::')[-1]
         end_time = datetime.now()
         results = "passed"
-        error_type = "Error"
+        error_type = None
         reason = None
     
         try:
@@ -55,6 +55,7 @@ def insert_test_data(request):
             if request.node.rep_setup.failed:
                 results = "error"
                 reason = "Test setup failed"
+                error_type = "Error"
             else:
                 # Check if the test case failed
                 if request.node.rep_call.failed:
@@ -64,6 +65,7 @@ def insert_test_data(request):
         except Exception as e:
             results = "error"
             reason = str(e)
+            error_type = "Error"
     
         # Calculate response time
         response_time = (end_time - start_time).total_seconds()
