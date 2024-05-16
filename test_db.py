@@ -5,6 +5,7 @@ import json
 import time
 import requests
 import pytest
+import re
 from api_data import *
 from api_methods import APIFramework
 from endpoints import *
@@ -13,6 +14,14 @@ from playwright.sync_api import sync_playwright
 
 api_obj = APIFramework()
 
+def extract_error_message(text):
+    pattern = r'(AssertionError:.*?)\n\S+\.py:\d+: AssertionError'
+    match = re.search(pattern, text, re.DOTALL)
+
+    if match:
+        result = match.group(1).strip()
+        return result
+    return text
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -49,6 +58,7 @@ def insert_test_data(request):
                 if request.node.rep_call.failed:
                     results = "failed"
                     fail_reason = str(request.node.rep_call.longrepr)
+                    fail_resaon = extract_error_message(fail_reason)
         except Exception as e:
             results = "error"
             fail_reason = str(e)
