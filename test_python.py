@@ -17,8 +17,7 @@ def api_session():
     return requests.Session()
 
 
-@pytest.mark.run(order=1)
-def test_get_login_token():
+def get_login_token():
     global header
     with sync_playwright() as play:
         browser = play.chromium.launch()
@@ -48,6 +47,7 @@ def test_create_manualworkspace_directory(api_session):
     successful, the test passes, indicating that the system can effectively create directories as intended
     """
     global dir_id
+    get_login_token()
 
     response = api_session.post(url=create_directory_url,
                                 json=test_create_manualworkspace_directory_json,
