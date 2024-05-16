@@ -15,11 +15,11 @@ from playwright.sync_api import sync_playwright
 api_obj = APIFramework()
 
 def extract_error_message(text):
-    pattern = r'(AssertionError:.*?)\n\S+\.py:\d+: AssertionError'
-    match = re.search(pattern, text, re.DOTALL)
+    pattern = r'\b\w*Error:'
+    match = re.search(pattern, text)
 
-    if match:
-        result = match.group(1).strip()
+    if len(match)!=0:
+        result = match[0].replace(":","")
         return result
     return text
 
