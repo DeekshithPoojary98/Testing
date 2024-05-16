@@ -16,12 +16,13 @@ api_obj = APIFramework()
 
 def extract_error_message(text):
     pattern = r'\b\w*Error:'
+    assertion_error_pattern = r"AssertionError:.*?Failed conditions:(.*)"
     match = re.findall(pattern, text)
 
     if len(match)!=0:
         result = match[0].replace(":","")
-        return result
-    return text
+        return result, text
+    return "Error", text
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -46,32 +47,33 @@ def insert_test_data(request):
         test_case_name = test_case_name.split('::')[-1]
         end_time = datetime.now()
         results = "passed"
-        fail_reason = None
+        error_type = "Error"
+        reason = None
     
         try:
             # Check if the test setup failed
             if request.node.rep_setup.failed:
                 results = "error"
-                fail_reason = "Test setup failed"
+                reason = "Test setup failed"
             else:
                 # Check if the test case failed
                 if request.node.rep_call.failed:
                     results = "failed"
-                    fail_reason = str(request.node.rep_call.longrepr)
-                    fail_reason = extract_error_message(fail_reason)
+                    reason = str(request.node.rep_call.longrepr)
+                    error_type, reason = extract_error_message(reason)
         except Exception as e:
             results = "error"
-            fail_reason = str(e)
+            reason = str(e)
     
         # Calculate response time
         response_time = (end_time - start_time).total_seconds()
     
         # Insert test result into the database
         insert_query = """
-            INSERT INTO testdb.pytest_results (test_case_name, start_time, response_time, results, fail_reason)
-            VALUES (%s, %s, %s, %s, %s);
+            INSERT INTO testdb.pytest_results (test_case_name, start_time, response_time, results, error_type, reason)
+            VALUES (%s, %s, %s, %s, %s, %s);
         """
-        cursor.execute(insert_query, (test_case_name, start_time, response_time, results, fail_reason))
+        cursor.execute(insert_query, (test_case_name, start_time, response_time, results, error_type, reason))
         connection.commit()
     
         cursor.close()
