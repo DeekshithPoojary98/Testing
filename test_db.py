@@ -95,7 +95,7 @@ def api_session():
 def test_get_login_token():
     global header
     with sync_playwright() as play:
-        browser = play.chromium.launch(headless=False)
+        browser = play.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto("http://103.171.98.14:9068")
         page.fill("//input[@placeholder='User Identification*']", username)
