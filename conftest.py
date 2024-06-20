@@ -35,8 +35,8 @@ def pytest_runtest_makereport(item, call):
         total_count += 1
         if call.excinfo is None:
             passed_count += 1
-        elif call.excinfo.errisinstance(pytest.skip.Exception):
-            skipped_count += 1
+        # elif call.excinfo.errisinstance(pytest.skip.Exception):
+        #     skipped_count += 1
         else:
             failed_count += 1
 
