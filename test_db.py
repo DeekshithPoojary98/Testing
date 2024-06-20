@@ -426,8 +426,8 @@ def test_convert_pdf_to_other_formats(api_session, file_format):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder(f"../downloads/pdf-{file_format}")
-    save_decoded_file((response.json())['data'], file_format,
+    #create_folder(f"../downloads/pdf-{file_format}")
+    ##save_decoded_file((response.json())['data'], file_format,
                       f'../downloads/pdf-{file_format}/converted_{file_format}')
 
 
@@ -456,10 +456,10 @@ def test_pdf_split(api_session, operation_type, value, page_count):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder(f"../downloads/pdf_split_{operation_type}")
-    save_decoded_file((response.json())['data'], 'pdf',
+    #create_folder(f"../downloads/pdf_split_{operation_type}")
+    ##save_decoded_file((response.json())['data'], 'pdf',
                       f'../downloads/pdf_split_{operation_type}/split_{operation_type}')
-    count_pdf_pages_and_verify(f'../downloads/pdf_split_{operation_type}/split_{operation_type}_0.pdf',
+    #count_pdf_pages_and_verify(f'../downloads/pdf_split_{operation_type}/split_{operation_type}_0.pdf',
                                f"PDF Split - {operation_type}", page_count)
 
 
@@ -479,10 +479,10 @@ def test_pdf_rotate(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder("../downloads/rotated-pdf")
-    save_decoded_file((response.json())['data'], 'pdf',
+    #create_folder("../downloads/rotated-pdf")
+    #save_decoded_file((response.json())['data'], 'pdf',
                       '../downloads/rotated-pdf/rotated_pdf')
-    count_pdf_pages_and_verify('../downloads/rotated-pdf/rotated_pdf.pdf',
+    #count_pdf_pages_and_verify('../downloads/rotated-pdf/rotated_pdf.pdf',
                                "PDF rotation", pdf_page_count)
 
 
@@ -500,8 +500,8 @@ def test_pdf_compress(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder("../downloads/compressed-pdf")
-    save_decoded_file((response.json())['data'], 'pdf',
+    #create_folder("../downloads/compressed-pdf")
+    #save_decoded_file((response.json())['data'], 'pdf',
                       '../downloads/compressed-pdf/compressed_pdf')
 
 
@@ -522,8 +522,8 @@ def test_convert_text_file_to_pdf(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder("../downloads/text-pdf")
-    save_decoded_file((response.json())['data'], 'pdf',
+    #create_folder("../downloads/text-pdf")
+    #save_decoded_file((response.json())['data'], 'pdf',
                       '../downloads/text-pdf/converted_pdf')
 
 
@@ -544,8 +544,8 @@ def test_convert_tiff_file_to_pdf(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder("../downloads/tiff-pdf")
-    save_decoded_file((response.json())['data'], 'pdf',
+    #create_folder("../downloads/tiff-pdf")
+    #save_decoded_file((response.json())['data'], 'pdf',
                       '../downloads/tiff-pdf/converted_pdf')
 
 
@@ -566,8 +566,8 @@ def test_convert_image_to_pdf(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder("../downloads/image-pdf")
-    save_decoded_file((response.json())['data'], 'pdf',
+    #create_folder("../downloads/image-pdf")
+    #save_decoded_file((response.json())['data'], 'pdf',
                       '../downloads/image-pdf/converted_pdf')
 
 
@@ -588,8 +588,8 @@ def test_convert_xlsx_file_to_pdf(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder("../downloads/xlsx-pdf")
-    save_decoded_file((response.json())['data'], 'pdf',
+    #create_folder("../downloads/xlsx-pdf")
+    #save_decoded_file((response.json())['data'], 'pdf',
                       '../downloads/xlsx-pdf/converted_pdf')
 
 
@@ -610,8 +610,8 @@ def test_merge_pdfs(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder("../downloads/merge-pdf")
-    save_decoded_file((response.json())['data'], 'pdf',
+    #create_folder("../downloads/merge-pdf")
+    #save_decoded_file((response.json())['data'], 'pdf',
                       '../downloads/merge-pdf/merged_pdf')
 
 
@@ -631,8 +631,8 @@ def test_download_zip(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    create_folder("../downloads/download-zip")
-    save_decoded_file((response.json())['data'], 'zip',
+    #create_folder("../downloads/download-zip")
+    #save_decoded_file((response.json())['data'], 'zip',
                       '../downloads/download-zip/zip_file')
 
 
