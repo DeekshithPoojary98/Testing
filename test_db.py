@@ -95,12 +95,12 @@ def api_session():
 def test_get_login_token():
     global header
     with sync_playwright() as play:
-        browser = play.chromium.launch()
+        browser = play.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto("http://103.171.98.14:9068")
         page.fill("//input[@placeholder='User Identification*']", username)
         page.fill("//input[@placeholder='Password*']", password)
-        page.fill("//input[@placeholder='Enter captcha text']", "a")
+        # page.fill("//input[@placeholder='Enter captcha text']", "a")
         page.click("//span[@class='mat-mdc-button-touch-target']")
         browser.close()
         time.sleep(2)
