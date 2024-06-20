@@ -427,8 +427,7 @@ def test_convert_pdf_to_other_formats(api_session, file_format):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder(f"../downloads/pdf-{file_format}")
-    ##save_decoded_file((response.json())['data'], file_format,
-                      f'../downloads/pdf-{file_format}/converted_{file_format}')
+    #save_decoded_file((response.json())['data'], file_format, f'../downloads/pdf-{file_format}/converted_{file_format}')
 
 
 # @pytest.mark.skip(reason="skipping for now")
@@ -457,10 +456,8 @@ def test_pdf_split(api_session, operation_type, value, page_count):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder(f"../downloads/pdf_split_{operation_type}")
-    ##save_decoded_file((response.json())['data'], 'pdf',
-                      f'../downloads/pdf_split_{operation_type}/split_{operation_type}')
-    #count_pdf_pages_and_verify(f'../downloads/pdf_split_{operation_type}/split_{operation_type}_0.pdf',
-                               f"PDF Split - {operation_type}", page_count)
+    #save_decoded_file((response.json())['data'], 'pdf', f'../downloads/pdf_split_{operation_type}/split_{operation_type}')
+    #count_pdf_pages_and_verify(f'../downloads/pdf_split_{operation_type}/split_{operation_type}_0.pdf', f"PDF Split - {operation_type}", page_count)
 
 
 @pytest.mark.run(order=14)
@@ -480,10 +477,8 @@ def test_pdf_rotate(api_session):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder("../downloads/rotated-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf',
-                      '../downloads/rotated-pdf/rotated_pdf')
-    #count_pdf_pages_and_verify('../downloads/rotated-pdf/rotated_pdf.pdf',
-                               "PDF rotation", pdf_page_count)
+    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/rotated-pdf/rotated_pdf')
+    #count_pdf_pages_and_verify('../downloads/rotated-pdf/rotated_pdf.pdf', "PDF rotation", pdf_page_count)
 
 
 @pytest.mark.run(order=15)
@@ -501,8 +496,7 @@ def test_pdf_compress(api_session):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder("../downloads/compressed-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf',
-                      '../downloads/compressed-pdf/compressed_pdf')
+    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/compressed-pdf/compressed_pdf')
 
 
 @pytest.mark.run(order=16)
@@ -523,8 +517,7 @@ def test_convert_text_file_to_pdf(api_session):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder("../downloads/text-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf',
-                      '../downloads/text-pdf/converted_pdf')
+    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/text-pdf/converted_pdf')
 
 
 @pytest.mark.run(order=17)
@@ -545,8 +538,7 @@ def test_convert_tiff_file_to_pdf(api_session):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder("../downloads/tiff-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf',
-                      '../downloads/tiff-pdf/converted_pdf')
+    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/tiff-pdf/converted_pdf')
 
 
 @pytest.mark.run(order=18)
@@ -567,8 +559,7 @@ def test_convert_image_to_pdf(api_session):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder("../downloads/image-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf',
-                      '../downloads/image-pdf/converted_pdf')
+    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/image-pdf/converted_pdf')
 
 
 @pytest.mark.run(order=19)
@@ -589,8 +580,7 @@ def test_convert_xlsx_file_to_pdf(api_session):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder("../downloads/xlsx-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf',
-                      '../downloads/xlsx-pdf/converted_pdf')
+    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/xlsx-pdf/converted_pdf')
 
 
 @pytest.mark.run(order=20)
@@ -611,8 +601,7 @@ def test_merge_pdfs(api_session):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder("../downloads/merge-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf',
-                      '../downloads/merge-pdf/merged_pdf')
+    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/merge-pdf/merged_pdf')
 
 
 @pytest.mark.run(order=21)
@@ -632,8 +621,7 @@ def test_download_zip(api_session):
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
     #create_folder("../downloads/download-zip")
-    #save_decoded_file((response.json())['data'], 'zip',
-                      '../downloads/download-zip/zip_file')
+    #save_decoded_file((response.json())['data'], 'zip', '../downloads/download-zip/zip_file')
 
 
 # Fav / Arc / Trash
