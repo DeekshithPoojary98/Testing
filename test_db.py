@@ -73,7 +73,7 @@ def insert_test_data(request):
         # Calculate response time
         response_time = (end_time - start_time).total_seconds()
 
-        bitrix_notification(f"TestCaseID: {test_case_name}\nStatus: {results}")
+        # bitrix_notification(f"TestCaseID: {test_case_name}\nStatus: {results}")
     
         # Insert test result into the database
         insert_query = """
