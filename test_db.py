@@ -14,9 +14,6 @@ from playwright.sync_api import sync_playwright
 
 api_obj = APIFramework()
 
-def bitrix_notification(message):
-    res = requests.get(f'https://sirmaglobal.bitrix24.com/rest/118/b2iecuj66krfw9kk/imbot.message.add.json?BOT_ID=214&CLIENT_ID=6gvjn227c5aayn2qo6ur6e16rpbwtn4r&DIALOG_ID=216&MESSAGE={message}')
-
 def extract_error_message(text):
     pattern = r'\b\w*Error:'
     assertion_error_pattern = r"AssertionError:.*?Failed conditions:(.*)"
@@ -72,8 +69,6 @@ def insert_test_data(request):
     
         # Calculate response time
         response_time = (end_time - start_time).total_seconds()
-
-        # bitrix_notification(f"TestCaseID: {test_case_name}\nStatus: {results}")
     
         # Insert test result into the database
         insert_query = """
