@@ -35,8 +35,8 @@ def pytest_runtest_makereport(item, call):
         total_count += 1
         if call.excinfo is None:
             passed_count += 1
-        # elif call.excinfo.errisinstance(pytest.skip.Exception):
-        #     skipped_count += 1
+        elif call.excinfo.errisinstance(pytest.skip.Exception):
+            skipped_count += 1
         else:
             failed_count += 1
 
@@ -52,7 +52,7 @@ def pytest_html_results_table_row(report, cells):
 def final_cleanup(request):
     yield
     current_date_time = datetime.now().strftime("%m-%d-%Y %I:%M:%S %p")
-    message = f'[b]Regression Testing Summary for IDOCX[/b]%0ADate: {current_date_time}%0A%0APassed: {passed_count}%0AFailed: {failed_count}%0ASkipped: {failed_count}%0ATotal Test Cases: {total_count}'
+    message = f'[b]Regression Testing Summary for IDOCX[/b]%0ADate: {current_date_time}%0A%0APassed: {passed_count}%0AFailed: {failed_count}%0ASkipped: {skipped_count}%0ATotal Test Cases: {total_count}'
     requests.get(f'https://sirmaglobal.bitrix24.com/rest/118/b2iecuj66krfw9kk/imbot.message.add.json?BOT_ID=214&CLIENT_ID=6gvjn227c5aayn2qo6ur6e16rpbwtn4r&DIALOG_ID=216&MESSAGE={message}')
     print("Bitrix Notification Sent!")
 
