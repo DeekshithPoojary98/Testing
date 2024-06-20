@@ -1,5 +1,5 @@
 # Base URL of the API
-base_url = 'https://qanewidocx.impactosuitedeveloper.com'
+base_url = 'https://idocxapi.impactosuitedeveloper.com'
 
 # endpoint URLs
 # workspace
