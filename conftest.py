@@ -51,7 +51,8 @@ def pytest_html_results_table_row(report, cells):
 @pytest.fixture(scope='session', autouse=True)
 def final_cleanup(request):
     yield
-    message = f"[b]Regression Testing Summary for IDOCX[/b]%0ADate: {datetime.now().strftime("%m-%d-%Y %I:%M:%S %p")}%0A%0APassed: {passed_count}%0AFailed: {failed_count}%0ASkipped: {failed_count}%0ATotal Test Cases: {total_count}"
+    current_date_time = datetime.now().strftime("%m-%d-%Y %I:%M:%S %p")
+    message = f'[b]Regression Testing Summary for IDOCX[/b]%0ADate: {current_date_time}%0A%0APassed: {passed_count}%0AFailed: {failed_count}%0ASkipped: {failed_count}%0ATotal Test Cases: {total_count}'
     requests.get(f'https://sirmaglobal.bitrix24.com/rest/118/b2iecuj66krfw9kk/imbot.message.add.json?BOT_ID=214&CLIENT_ID=6gvjn227c5aayn2qo6ur6e16rpbwtn4r&DIALOG_ID=216&MESSAGE={message}')
 
 
