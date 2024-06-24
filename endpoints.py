@@ -11,6 +11,9 @@ update_file_url = base_url + "/api/v1/workspace/update-file"
 update_tag_url = base_url + "/api/v1/workspace/update-tags/{id}"
 update_folder_url = base_url + "/api/v1/workspace/update-folder/{id}"
 get_all_folder_structure_url = base_url + "/api/v1/workspace/{workSpaceName}"
+auditing_url = base_url + "/api/v1/workspace/audit"
+check_password_url = base_url + "/api/v1/workspace/protect"
+flexcube_documents = base_url + "/api/v1/workspace/all-files/{cifID}"
 
 # search
 search_url = base_url + "/api/v1/search"
