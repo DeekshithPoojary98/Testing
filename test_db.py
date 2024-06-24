@@ -14,23 +14,27 @@ from playwright.sync_api import sync_playwright
 
 api_obj = APIFramework()
 
+
 def extract_error_message(text):
     pattern = r'\b\w*Error:'
-    assertion_error_pattern = r"AssertionError:.*?Failed conditions:(.*)"
+    # assertion_error_pattern = r"AssertionError:.*?Failed conditions:(.*)"
     match = re.findall(pattern, text)
 
-    if len(match)!=0:
-        result = match[0].replace(":","")
+    if len(match) != 0:
+        result = match[0].replace(":", "")
         return result, text
     return "Error", text
 
+
 def get_db_connection():
     return mysql.connector.connect(
-        host="host.docker.internal",
+        # host="host.docker.internal",
+        host="localhost",
         user="root",
         password="Sirma@123",
         database="testdb"
     )
+
 
 @pytest.fixture(scope="function", autouse=True)
 def insert_test_data(request):
@@ -49,7 +53,7 @@ def insert_test_data(request):
         results = "passed"
         error_type = None
         reason = None
-    
+
         try:
             # Check if the test setup failed
             if request.node.rep_setup.failed:
@@ -66,10 +70,10 @@ def insert_test_data(request):
             results = "error"
             reason = str(e)
             error_type = "Error"
-    
+
         # Calculate response time
         response_time = (end_time - start_time).total_seconds()
-    
+
         # Insert test result into the database
         insert_query = """
             INSERT INTO testdb.pytest_results (test_case_name, start_time, response_time, results, error_type, reason)
@@ -77,11 +81,10 @@ def insert_test_data(request):
         """
         cursor.execute(insert_query, (test_case_name, start_time, response_time, results, error_type, reason))
         connection.commit()
-    
+
         cursor.close()
         connection.close()
 
-        
     request.addfinalizer(teardown)
     setup()
 
@@ -116,20 +119,18 @@ def test_get_login_token():
 @pytest.mark.run(order=2)
 def test_create_manualworkspace_directory(api_session):
     """
-    This test case validates the functionality of an API designed to create a directory. It ensures that a new
-    directory is successfully created with the specified name. The test verifies that upon calling the API,
-    a directory is created at the designated path within the filesystem. If the directory creation operation is
-    successful, the test passes, indicating that the system can effectively create directories as intended
+    This test case verifies that an API successfully creates a directory with a specified name. It checks that
+    calling the API results in the creation of a directory at the designated path in the filesystem. If the directory
+    creation operation succeeds, the test confirms that the system can create directories as intended.
     """
-    global dir_id
-
+    global manual_dir_id
     response = api_session.post(url=create_directory_url,
                                 json=test_create_manualworkspace_directory_json,
                                 headers=header)
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    dir_id = (response.json())['data']['id']
+    manual_dir_id = (response.json())['data']['id']
     print(json.dumps(response.json(), indent=4))
     folder_name_validation = api_obj.validate_key_value(response.json(), 'folderName', folder_name)
     folder_path_validation = api_obj.validate_key_value(response.json(), 'folderPath',
@@ -146,33 +147,81 @@ def test_create_manualworkspace_directory(api_session):
 
 
 @pytest.mark.run(order=3)
-def test_get_workspace(api_session):
+def test_create_manualworkspace_directory_with_mismatch_foldername(api_session):
+    test_json = test_create_manualworkspace_directory_json.copy()
+    test_json["folderName"] = "InvalidFolderName"
+    response = api_session.post(url=create_directory_url,
+                                json=test_json,
+                                headers=header)
+    assert (response.json())[
+               'message'] == f"{test_json['folderName']} folder Name is not matching with given folder path {test_json['folderPath']}"
+    print(json.dumps(response.json(), indent=4))
+
+
+@pytest.mark.run(order=4)
+@pytest.mark.parametrize('field', workspace_field_names)
+def test_create_manualworkspace_directory_with_blank_fields(field, api_session):
+    global error_message
+    test_json = test_create_manualworkspace_directory_json.copy()
+    if field == "blank_foldername":
+        test_json["folderName"] = ""
+        error_message = "Folder Name must not be blank."
+    elif field == "blank_filepath":
+        test_json["folderPath"] = ""
+        error_message = "Folder Path is required"
+    elif field == "character_limit":
+        invalid_folder_name = "1" * 60
+        test_json["filePath"] = f"/IDOC_Filesystem/workspace/manualworkspace/{invalid_folder_name}"
+        test_json["folderName"] = invalid_folder_name
+        error_message = "Folder Name must be a maximum of 56 characters"
+    else:
+        test_json = test_create_manualworkspace_directory_json
+        error_message = f"Folder already exists with cifId: {cifID}"
+
+    response = api_session.post(url=create_directory_url,
+                                json=test_json,
+                                headers=header)
+    assert (response.json())['message'] == error_message
+    print(json.dumps(response.json(), indent=4))
+
+
+@pytest.mark.run(order=5)
+@pytest.mark.parametrize('api_name', list(api_data.keys()))
+def test_create_manual_directory_invalid_token(api_name, api_session):
+    invalid_token = header.copy()
+    invalid_token['Authorization'] = "invalid_token"
+    response = api_session.post(url=api_data[api_name]['url'],
+                                json=api_data[api_name]['data'],
+                                headers=invalid_token)
+    assert response.status_code == 500
+
+
+@pytest.mark.run(order=6)
+@pytest.mark.parametrize('workspace', workspaces)
+def test_get_all_folder_structure(workspace, api_session):
     """
-    This test verifies the accuracy of an API responsible for listing all directories within a specified workspace.
-    After creating a directory using a separate API call, this test ensures that the newly created directory is
-    included in the list of directories returned by the API. By confirming the presence of the directory in the list,
-    the test confirms that the system accurately retrieves and displays existing directories within the designated
-    workspace
+    This test verifies that an API correctly lists directories within a specified workspace. It checks if a newly
+    created directory appears in the list returned by the API after creation.
     """
-    response = api_session.get(url=get_all_folder_structure_url.format(workSpaceName="manualworkspace"),
+    response = api_session.get(url=get_all_folder_structure_url.format(workSpaceName=workspace),
                                headers=header)
     print(json.dumps(response.json(), indent=4))
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    id_validation = api_obj.validate_key_value(response.json(), 'id', dir_id)
-    print_results(f"Folder {folder_name} exists with id {dir_id}",
+    if workspace == "MANUALWORKSPACE":
+        id_validation = api_obj.validate_key_value(response.json(), 'id', manual_dir_id)
+    workspace_type_validation = api_obj.validate_key_value(response.json(), 'workSpaceType', workspace)
+    print_results(f"Folder {folder_name} exists with id {manual_dir_id}",
                   f"Folder {folder_name} doesnt exists", locals())
 
 
-@pytest.mark.run(order=4)
+@pytest.mark.run(order=7)
 # @pytest.mark.skip(reason="skipping for now")
 def test_upload(api_session):
     """
-    This test validates the functionality of an API designed for uploading files into a specific directory. The test
-    uploads a file into the previously created directory. The test verifies the success of the file upload operation
-    by checking if the API returns a success message confirming the successful upload of the file into the designated
-    directory
+    This test validates an API for uploading files to a specific directory. It confirms the API's success message
+    upon uploading a file into the designated directory.
     """
 
     response = api_session.post(url=upload_url,
@@ -192,14 +241,30 @@ def test_upload(api_session):
     print_results("File uploaded successfully", "File upload unsuccessful", locals())
 
 
-# @pytest.mark.skip(reason="skipping for now")
-@pytest.mark.run(order=5)
+@pytest.mark.run(order=8)
+@pytest.mark.parametrize('field_name', test_cases)
+def test_upload_file_with_invalid_field_values(field_name, api_session):
+    test_json = test_upload_data.copy()
+    test_file = test_upload_file
+
+    if field_name == "blank_files":
+        test_file = test_cases[field_name][1]
+    else:
+        test_json[test_cases[field_name][0]] = test_cases[field_name][1]
+
+    response = api_session.post(url=upload_url,
+                                data=test_json,
+                                files=test_file,
+                                headers=header)
+    assert (response.json())['message'] == test_cases[field_name][-1]
+    print(json.dumps(response.json(), indent=4))
+
+
+@pytest.mark.run(order=9)
 def test_get_documents(api_session):
     """
-    This test validates the functionality of an API responsible for listing all the files present within a specified
-    directory. The test verifies whether the file uploaded in the previous step is correctly listed by the API. By
-    querying the API with the directory path, the test ensures that the uploaded file is included in the list of
-    files returned by the API.
+    This test validates an API for listing files within a specified directory. It checks if the file uploaded in the
+    previous step appears in the list returned by the API when queried with the directory path.
     """
     global pdf_doc_id1, txt_doc_id, tiff_doc_id, xlsx_doc_id, image_doc_id, pdf_doc_id2
     response = api_session.get(url=documents_url,
@@ -228,16 +293,23 @@ def test_get_documents(api_session):
                   locals())
 
 
-# @pytest.mark.skip(reason="skipping for now")
-@pytest.mark.run(order=6)
+@pytest.mark.run(order=10)
+def test_get_documents_blank_filepath(api_session):
+    test_params = test_get_documents_params.copy()
+    test_params['filePath'] = ""
+    response = api_session.get(url=documents_url,
+                               params=test_params,
+                               headers=header)
+    assert (response.json())['message'] == "File Path must not be blank."
+    print(json.dumps(response.json(), indent=4))
+
+
+@pytest.mark.run(order=11)
 def test_get_download(api_session):
     """
-    This test evaluates the functionality of an API designed to download a file using its ID. By providing the
-    file ID as a parameter, the test initiates the download process and verifies that the file is successfully
-    downloaded to the local machine. After downloading, the test confirms the integrity of the downloaded file to
-    ensure that it matches the original file stored on the server.
+    This test evaluates an API for downloading files using their IDs. It verifies the successful download of the file
+    to the local machine by checking its integrity against the original file stored on the server.
     """
-
     response = api_session.get(download_url.format(id=pdf_doc_id1), headers=header)
     response.raise_for_status()
     file_content = response.content
@@ -250,44 +322,11 @@ def test_get_download(api_session):
         raise Exception(f"File '{pdf_file_name}' did not download")
 
 
-# Search
-# @pytest.mark.skip(reason="skipping for now")
-@pytest.mark.run(order=7)
-@pytest.mark.parametrize("search_filter", search_filters)
-def test_search_file(api_session, search_filter):
-    """
-    This test evaluates the search functionality of an API, which allows users to search for either a folder or a
-    file by providing various search parameters. The test focuses on verifying whether the uploaded file and the
-    created directory are correctly listed by the API based on the specified search criteria. By examining the API
-    response, the test confirms whether the expected items are accurately retrieved and listed.
-    """
-    test_search_file_params["filter"] = search_filter
-    response = api_session.get(
-        search_url,
-        params=test_search_file_params,
-        headers=header
-    )
-    print(json.dumps(response.json(), indent=4))
-    response.raise_for_status()
-    assert (response.json())['message'] == "success"
-    assert len((response.json())['data']) != 0, "Empty Response"
-    file_name_validation = api_obj.validate_key_value(response.json(), 'fileName', pdf_file_name)
-    if search_filter != "notContains":
-        print_results(f"Fetched all {pdf_file_name} files",
-                      f"Unable to fetch all {pdf_file_name} files", locals())
-    else:
-        if file_name_validation:
-            raise AssertionError(f"{pdf_file_name} is found in search")
-
-
-# @pytest.mark.skip(reason="skipping for now")
-@pytest.mark.run(order=8)
+@pytest.mark.run(order=12)
 def test_update_file_name(api_session):
     """
-    This test case assesses the functionality of an API designed to update file names. The API accepts the file ID as
-    input and modifies the filename accordingly. The test verifies the correct execution of this operation by
-    supplying the file ID of a previously uploaded file and updating its name. Upon completion, the test confirms
-    whether the filename has been successfully updated by examining the response from the API.
+    This test evaluates an API for updating file names using their IDs. It verifies the update's success by providing
+    the file ID and checking the API's response.
     """
 
     test_update_file_name_json["id"] = pdf_doc_id1
@@ -308,14 +347,11 @@ def test_update_file_name(api_session):
                   f"Unable to update file name to {updated_file_name}", locals())
 
 
-# @pytest.mark.skip(reason="skipping for now")
-@pytest.mark.run(order=9)
+@pytest.mark.run(order=13)
 def test_update_file_tags(api_session):
     """
-    This test case assesses the functionality of an API designed to update file tags. The API accepts the file ID as
-    input and updates the file tag accordingly. The test verifies the correct execution of this operation by
-    supplying the file ID of a previously uploaded file and updating its tag. Upon completion, the test confirms
-    whether the file tag name has been successfully updated by examining the response from the API.
+    This test evaluates an API for updating file tags using their IDs. It verifies the update's success by providing
+    the file ID and checking the API's response.
     """
     test_update_file_tags_json["id"] = pdf_doc_id1
     response = api_session.put(url=update_file_url,
@@ -337,18 +373,15 @@ def test_update_file_tags(api_session):
     tags_validation = api_obj.validate_key_value(response.json(), 'tags', [new_tag])
     created_by_validation = api_obj.validate_key_value(response.json(), 'createdBy', username)
 
-    print_results(f"Updated file tag from to {new_tag}",
+    print_results(f"Updated file tag to {new_tag}",
                   f"Unable to update file tag to {new_tag}", locals())
 
 
-# @pytest.mark.skip(reason="skipping for now")
-@pytest.mark.run(order=10)
+@pytest.mark.run(order=14)
 def test_update_file_remark(api_session):
     """
-    This test case assesses the functionality of an API designed to update file remarks. The API accepts the file ID as
-    input and updates the file remarks accordingly. The test verifies the correct execution of this operation by
-    supplying the file ID of a previously uploaded file and updating its remarks. Upon completion, the test confirms
-    whether the file remarks name has been successfully updated by examining the response from the API.
+    This test evaluates an API for updating file remarks using their IDs. It verifies the update's success by providing
+    the file ID and checking the API's response.
     """
     test_update_file_remark_json["id"] = pdf_doc_id1
     response = api_session.put(url=update_file_url,
@@ -371,20 +404,82 @@ def test_update_file_remark(api_session):
     remarks_validation = api_obj.validate_key_value(response.json(), 'remarks', new_remarks)
     created_by_validation = api_obj.validate_key_value(response.json(), 'createdBy', username)
 
-    print_results(f"Updated file remarks from to {new_remarks}",
+    print_results(f"Updated file remarks to {new_remarks}",
                   f"Unable to update file remarks to {new_remarks}", locals())
 
 
-# @pytest.mark.skip(reason="skipping for now")
-@pytest.mark.run(order=11)
+@pytest.mark.run(order=15)
+def test_update_file_is_verified(api_session):
+    """
+    This test evaluates an API for updating file verified status using their IDs. It verifies the update's success by providing
+    the file ID and checking the API's response.
+    """
+    test_update_file_is_verified_json["id"] = pdf_doc_id1
+    response = api_session.put(update_file_url,
+                               json=test_update_file_is_verified_json,
+                               headers=header)
+    print(json.dumps(response.json(), indent=4))
+    response.raise_for_status()
+    assert (response.json())['message'] == "success"
+    assert len((response.json())['data']) != 0, "Empty Response"
+    file_name_validation = api_obj.validate_key_value(response.json(), 'fileName', updated_file_name)
+    file_path_validation = api_obj.validate_key_value(response.json(), 'filePath',
+                                                      f"/IDOC_Filesystem/workspace/manualworkspace/{folder_name}")
+    directory_name_validation = api_obj.validate_key_value(response.json(), 'directoryName',
+                                                           f"/IDOC_Filesystem/workspace/manualworkspace/{folder_name}/{updated_file_name}")
+    workspace_type_validation = api_obj.validate_key_value(response.json(), 'workSpaceType', "MANUALWORKSPACE")
+    archive_validation = api_obj.validate_key_value(response.json(), 'archive', False)
+    favourite_validation = api_obj.validate_key_value(response.json(), 'favourite', False)
+    trash_validation = api_obj.validate_key_value(response.json(), 'trash', False)
+    tags_validation = api_obj.validate_key_value(response.json(), 'tags', [new_tag])
+    remarks_validation = api_obj.validate_key_value(response.json(), 'remarks', new_remarks)
+    created_by_validation = api_obj.validate_key_value(response.json(), 'createdBy', username)
+    verified_validation = api_obj.validate_key_value(response.json(), 'verified', True)
+
+    print_results("Updated document verified status",
+                  " Unable to update document verified status", locals())
+
+
+@pytest.mark.run(order=16)
+def test_update_file_password(api_session):
+    """
+    This test evaluates an API for updating file password using their IDs. It verifies the update's success by providing
+    the file ID and checking the API's response.
+    """
+    test_update_file_password_json["id"] = pdf_doc_id1
+    response = api_session.put(update_file_url,
+                               json=test_update_file_password_json,
+                               headers=header)
+    print(json.dumps(response.json(), indent=4))
+    response.raise_for_status()
+    assert (response.json())['message'] == "success"
+    assert len((response.json())['data']) != 0, "Empty Response"
+    file_name_validation = api_obj.validate_key_value(response.json(), 'fileName', updated_file_name)
+    file_path_validation = api_obj.validate_key_value(response.json(), 'filePath',
+                                                      f"/IDOC_Filesystem/workspace/manualworkspace/{folder_name}")
+    directory_name_validation = api_obj.validate_key_value(response.json(), 'directoryName',
+                                                           f"/IDOC_Filesystem/workspace/manualworkspace/{folder_name}/{updated_file_name}")
+    workspace_type_validation = api_obj.validate_key_value(response.json(), 'workSpaceType', "MANUALWORKSPACE")
+    archive_validation = api_obj.validate_key_value(response.json(), 'archive', False)
+    favourite_validation = api_obj.validate_key_value(response.json(), 'favourite', False)
+    trash_validation = api_obj.validate_key_value(response.json(), 'trash', False)
+    tags_validation = api_obj.validate_key_value(response.json(), 'tags', [new_tag])
+    remarks_validation = api_obj.validate_key_value(response.json(), 'remarks', new_remarks)
+    created_by_validation = api_obj.validate_key_value(response.json(), 'createdBy', username)
+    verified_validation = api_obj.validate_key_value(response.json(), 'verified', True)
+    password_validation = api_obj.validate_key_value(response.json(), 'passwordProtected', True)
+
+    print_results("Updated document password",
+                  " Unable to update document password", locals())
+
+
+@pytest.mark.run(order=17)
 def test_update_folder_name(api_session):
     """
-    This test case assesses the functionality of an API designed to update folder names. The API accepts the folder
-    ID as input and modifies the filename accordingly. The test verifies the correct execution of this operation by
-    supplying the folder ID of a previously created folder and updating its name. Upon completion, the test confirms
-    whether the folder name has been successfully updated by examining the response from the API.
+    This test case evaluates an API for updating folder names. It verifies the functionality by providing a folder
+    ID, updating its name, and checking the API response for successful execution.
     """
-    response = api_session.put(update_folder_url.format(id=dir_id),
+    response = api_session.put(update_folder_url.format(id=manual_dir_id),
                                params=test_update_folder_name_params,
                                headers=header)
     print(json.dumps(response.json(), indent=4))
@@ -405,17 +500,108 @@ def test_update_folder_name(api_session):
                   f" Unable to update folder name to {updated_folder_name}", locals())
 
 
-# PSD Operations
+@pytest.mark.run(order=18)
+def test_auditing_documents(api_session):
+    test_audit_params["id"] = pdf_doc_id1
+    response = api_session.get(url=auditing_url,
+                               params=test_audit_params,
+                               headers=header)
+    print(json.dumps(response.json(), indent=4))
+    response.raise_for_status()
+    assert (response.json())['message'] == "success"
+    assert len((response.json())['data']) != 0, "Empty Response"
+    resource_id_validation = api_obj.validate_key_value(response.json(), 'resourceId', pdf_doc_id1)
+    resource_type_validation = api_obj.validate_key_value(response.json(), 'resourceType', "DOCUMENT")
+    operated_by_validation = api_obj.validate_key_value(response.json(), 'operatedBy', username)
+
+    print_results(f"Fetched history of document ID {manual_dir_id}",
+                  f" Unable to fetch history of document ID {manual_dir_id}", locals())
+
+
+@pytest.mark.run(order=19)
+def test_auditing_folders(api_session):
+    test_audit_params["id"] = manual_dir_id
+    response = api_session.get(url=auditing_url,
+                               params=test_audit_params,
+                               headers=header)
+    print(json.dumps(response.json(), indent=4))
+    response.raise_for_status()
+    assert (response.json())['message'] == "success"
+    assert len((response.json())['data']) != 0, "Empty Response"
+    resource_id_validation = api_obj.validate_key_value(response.json(), 'resourceId', manual_dir_id)
+    resource_type_validation = api_obj.validate_key_value(response.json(), 'resourceType', "FOLDER")
+    operated_by_validation = api_obj.validate_key_value(response.json(), 'operatedBy', username)
+
+    print_results(f"Fetched history of folder ID {manual_dir_id}",
+                  f" Unable to fetch history of folder ID {manual_dir_id}", locals())
+
+
+@pytest.mark.run(order=20)
+@pytest.mark.parametrize('validation', list(password_validations.keys()))
+def test_check_password(validation, api_session):
+    test_check_password_json["id"] = pdf_doc_id1
+    test_check_password_json["password"] = password_validations[validation][0]
+
+    response = api_session.post(url=check_password_url,
+                                json=test_check_password_json,
+                                headers=header)
+    print(json.dumps(response.json(), indent=4))
+    response.raise_for_status()
+    assert (response.json())['message'] == "success"
+    data_validation = api_obj.validate_key_value(response.json(), 'data', password_validations[validation][1])
+
+    print_results(f"Fetched history of folder ID {manual_dir_id}",
+                  f" Unable to fetch history of folder ID {manual_dir_id}", locals())
+
+
+@pytest.mark.run(order=21)
+def test_get_all_flexcube_documents(api_session):
+    response = api_session.get(url=flexcube_documents.format(cifID=cifID))
+    print(response.content)
+    print(json.dumps(response.json(), indent=4))
+    response.raise_for_status()
+    assert (response.json())['message'] == "success"
+
+
+# Search
+# @pytest.mark.skip(reason="skipping for now")
+@pytest.mark.run(order=22)
+@pytest.mark.parametrize("search_filter", search_filters)
+def test_search_file(api_session, search_filter):
+    """
+    This test evaluates the search functionality of an API for folders and files. It verifies whether uploaded files
+    and created directories are correctly listed based on specified search parameters. The test examines the API
+    response to confirm accurate retrieval and listing of expected items.
+    """
+    test_search_file_params["filter"] = search_filter
+    response = api_session.get(
+        search_url,
+        params=test_search_file_params,
+        headers=header
+    )
+    print(json.dumps(response.json(), indent=4))
+    response.raise_for_status()
+    assert (response.json())['message'] == "success"
+    assert len((response.json())['data']) != 0, "Empty Response"
+    file_name_validation = api_obj.validate_key_value(response.json(), 'fileName', pdf_file_name)
+    if search_filter != "notContains":
+        print_results(f"Fetched all {pdf_file_name} files",
+                      f"Unable to fetch all {pdf_file_name} files", locals())
+    else:
+        if file_name_validation:
+            raise AssertionError(f"{pdf_file_name} is found in search")
+
+
+# PDF Operations
 # @pytest.mark.skip(reason="skipping for now")
 @pytest.mark.run(order=12)
 @pytest.mark.parametrize("file_format", file_formats)
 def test_convert_pdf_to_other_formats(api_session, file_format):
     """
-    This test case verifies the functionality of an API designed to convert PDF files to various formats. It ensures
-    that the API can successfully convert a provided PDF file to different formats, including JPEG, PNG, ZIP, DOCX,
-    XLSX, TIFF, and TXT. The test uploads a sample PDF file to the API and requests conversion to each supported
-    format. It then validates that the API responds with the expected success status code (e.g., 200) for each
-    conversion request. Upon receiving the converted file, the test saves it locally for visual inspection.
+    This test case verifies that an API correctly converts PDF files to various formats including JPEG, PNG, DOCX,
+    XLSX, TIFF, and TXT. It uploads a sample PDF file, requests conversion to each format, and checks for a success
+    status code (e.g., 200). The converted files are saved locally for visual inspection to confirm successful
+    conversion.
     """
     test_convert_pdf_to_other_format_params["documentId"] = pdf_doc_id1
     test_convert_pdf_to_other_format_params["format"] = file_format
@@ -426,8 +612,8 @@ def test_convert_pdf_to_other_formats(api_session, file_format):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder(f"../downloads/pdf-{file_format}")
-    #save_decoded_file((response.json())['data'], file_format, f'../downloads/pdf-{file_format}/converted_{file_format}')
+    # create_folder(f"../downloads/pdf-{file_format}") save_decoded_file((response.json())['data'], file_format,
+    # f'../downloads/pdf-{file_format}/converted_{file_format}')
 
 
 # @pytest.mark.skip(reason="skipping for now")
@@ -435,13 +621,9 @@ def test_convert_pdf_to_other_formats(api_session, file_format):
 @pytest.mark.parametrize("operation_type, value, page_count", operation_types)
 def test_pdf_split(api_session, operation_type, value, page_count):
     """
-    This test case evaluates an API designed to split PDF files into smaller PDFs based on specified criteria: single
-    page, page range, or random pages. For each split type,
-    the test verifies that the API responds with the expected success status code (e.g., 200) and generates the new
-    PDF file containing the selected pages. Upon receiving the split PDF files, the test saves them locally and
-    performs validation to ensure that each file contains the correct pages as specified in the request. By executing
-    this test, we confirm that the PDF splitting API effectively fulfills its purpose of allowing users to extract
-    specific pages from PDF documents and generate new files tailored to their requirements.
+    This test case verifies that an API correctly splits PDF files by single page, page range, or random pages. It
+    checks for a success status code (e.g., 200), saves the split PDFs locally, and ensures they contain the correct
+    pages. This confirms the API's functionality in extracting specific pages and generating new PDF files.
     """
 
     test_pdf_split_params["documentId"] = pdf_doc_id1
@@ -455,19 +637,18 @@ def test_pdf_split(api_session, operation_type, value, page_count):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder(f"../downloads/pdf_split_{operation_type}")
-    #save_decoded_file((response.json())['data'], 'pdf', f'../downloads/pdf_split_{operation_type}/split_{operation_type}')
-    #count_pdf_pages_and_verify(f'../downloads/pdf_split_{operation_type}/split_{operation_type}_0.pdf', f"PDF Split - {operation_type}", page_count)
+    '''create_folder(f"../downloads/pdf_split_{operation_type}") save_decoded_file((response.json())['data'], 'pdf', 
+    f'../downloads/pdf_split_{operation_type}/split_{operation_type}')
+    count_pdf_pages_and_verify(
+    f'../downloads/pdf_split_{operation_type}/split_{operation_type}_0.pdf', f"PDF Split - {operation_type}", 
+    page_count)'''
 
 
 @pytest.mark.run(order=14)
 def test_pdf_rotate(api_session):
-    """This test case verifies the functionality of an API designed to rotate PDF pages 90 degrees clockwise. The API
-    accepts a PDF ID as a parameter and rotates the pages of the corresponding PDF document. The test validates
-    that the API responds with the expected success status code (e.g., 200) for the rotation request. Upon successful
-    rotation, the test saves the rotated PDF file locally on the test machine for visual inspection. The rotated file
-    is then visually inspected to ensure that the pages have been rotated correctly without loss of content or
-    formatting."""
+    """This test case verifies that an API correctly rotates PDF pages 90 degrees clockwise. It provides a PDF ID,
+    requests rotation, and checks for a success status code (e.g., 200). The rotated PDF is saved locally for visual
+    inspection to ensure the pages have been correctly rotated without loss of content or formatting."""
     test_pdf_rotate_params["documentId"] = pdf_doc_id1
     response = api_session.post(url=pdf_rotate_url,
                                 params=test_pdf_rotate_params,
@@ -476,17 +657,17 @@ def test_pdf_rotate(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder("../downloads/rotated-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/rotated-pdf/rotated_pdf')
-    #count_pdf_pages_and_verify('../downloads/rotated-pdf/rotated_pdf.pdf', "PDF rotation", pdf_page_count)
+    '''create_folder("../downloads/rotated-pdf")
+    save_decoded_file((response.json())['data'], 'pdf', '../downloads/rotated-pdf/rotated_pdf')
+    count_pdf_pages_and_verify('../downloads/rotated-pdf/rotated_pdf.pdf', "PDF rotation", pdf_page_count)
+    '''
 
 
 @pytest.mark.run(order=15)
 def test_pdf_compress(api_session):
-    """This test case verifies the functionality of an API designed to compress PDF files. The API accepts a PDF ID
-    as a parameter and compresses the corresponding PDF document. The test validates that the API responds with the
-    expected success status code (e.g., 200) for the compression request. Upon successful compression, the test saves
-    the compressed PDF file locally on the test machine for visual inspection."""
+    """This test case verifies that an API correctly compresses PDF files. It provides a PDF ID,
+    requests compression, and checks for a success status code (e.g., 200). The compressed PDF is saved locally for
+    visual inspection."""
     test_pdf_compress_params["documentId"] = pdf_doc_id1
     response = api_session.post(url=pdf_compress_url,
                                 params=test_pdf_compress_params,
@@ -495,8 +676,8 @@ def test_pdf_compress(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder("../downloads/compressed-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/compressed-pdf/compressed_pdf')
+    '''create_folder("../downloads/compressed-pdf")
+    save_decoded_file((response.json())['data'], 'pdf', '../downloads/compressed-pdf/compressed_pdf')'''
 
 
 @pytest.mark.run(order=16)
@@ -516,18 +697,16 @@ def test_convert_text_file_to_pdf(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder("../downloads/text-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/text-pdf/converted_pdf')
+    '''create_folder("../downloads/text-pdf")
+    save_decoded_file((response.json())['data'], 'pdf', '../downloads/text-pdf/converted_pdf')'''
 
 
 @pytest.mark.run(order=17)
 def test_convert_tiff_file_to_pdf(api_session):
     """
-    This test case verifies the functionality of an API designed to convert tiff files to PDF. It ensures that the API
-    can successfully convert a provided tiff file to PDF formats. The test uploads a sample PDF file to the API and
-    requests conversion PDF format. It then validates that the API responds with the expected success
-    status code (e.g., 200) for each conversion request. Upon receiving the converted file, the test saves it locally
-    for visual inspection.
+    This test case verifies that an API correctly converts TIFF files to PDF. It uploads a sample TIFF file,
+    requests the conversion, and checks for a success status code (e.g., 200). The converted PDF is saved locally for
+    visual inspection.
     """
     test_convert_tiff_file_to_pdf_params["documentId"] = tiff_doc_id
     response = api_session.post(url=tiff_file_to_pdf_url,
@@ -537,18 +716,16 @@ def test_convert_tiff_file_to_pdf(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder("../downloads/tiff-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/tiff-pdf/converted_pdf')
+    '''create_folder("../downloads/tiff-pdf")
+    save_decoded_file((response.json())['data'], 'pdf', '../downloads/tiff-pdf/converted_pdf')'''
 
 
 @pytest.mark.run(order=18)
 def test_convert_image_to_pdf(api_session):
     """
-    This test case verifies the functionality of an API designed to convert image to PDF. It ensures that the API
-    can successfully convert a provided image to PDF format. The test uploads a sample PDF file to the API and
-    requests conversion PDF format. It then validates that the API responds with the expected success
-    status code (e.g., 200) for each conversion request. Upon receiving the converted file, the test saves it locally
-    for visual inspection.
+    This test case verifies that an API correctly converts images to PDF. It uploads a sample image, requests the
+    conversion, and checks for a success status code (e.g., 200). The converted PDF is saved locally for visual
+    inspection.
     """
     test_convert_image_to_pdf_params["documentId"] = image_doc_id
     response = api_session.post(url=image_to_pdf_url,
@@ -558,18 +735,16 @@ def test_convert_image_to_pdf(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder("../downloads/image-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/image-pdf/converted_pdf')
+    '''create_folder("../downloads/image-pdf")
+    save_decoded_file((response.json())['data'], 'pdf', '../downloads/image-pdf/converted_pdf')'''
 
 
 @pytest.mark.run(order=19)
 def test_convert_xlsx_file_to_pdf(api_session):
     """
-    This test case verifies the functionality of an API designed to convert XLSX files to PDF. It ensures that the API
-    can successfully convert a provided XLSX file to PDF format. The test uploads a sample PDF file to the API and
-    requests conversion PDF format. It then validates that the API responds with the expected success
-    status code (e.g., 200) for each conversion request. Upon receiving the converted file, the test saves it locally
-    for visual inspection.
+    This test case verifies that an API correctly converts XLSX files to PDF. It uploads a sample XLSX file,
+    requests the conversion, and checks for a success status code (e.g., 200). The converted PDF is saved locally for
+    visual inspection.
     """
     test_convert_xlsx_file_to_pdf_params["documentId"] = xlsx_doc_id
     response = api_session.post(url=xlsx_file_to_pdf_url,
@@ -579,19 +754,16 @@ def test_convert_xlsx_file_to_pdf(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder("../downloads/xlsx-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/xlsx-pdf/converted_pdf')
+    '''create_folder("../downloads/xlsx-pdf")
+    save_decoded_file((response.json())['data'], 'pdf', '../downloads/xlsx-pdf/converted_pdf')'''
 
 
 @pytest.mark.run(order=20)
 def test_merge_pdfs(api_session):
-    """This test case verifies the functionality of an API designed to merge multiple PDF documents into a single
-    file. The API accepts an array of document IDs as parameters, representing the PDFs to be merged. During testing,
-    sample PDF files are uploaded to the API, and a merge request is made with their respective IDs. The test
-    validates that the API responds with the expected success status code (e.g., 200) for the merge request. Upon
-    successful merging, the test saves the merged PDF file locally on the test machine for visual inspection. The
-    merged file is then visually inspected to ensure that all input documents have been combined accurately and that
-    the content and formatting are preserved."""
+    """This test case verifies that an API correctly merges multiple PDF documents into a single file. It uploads
+    sample PDFs, sends a merge request with their IDs, and checks for a success status code (e.g., 200). The merged
+    PDF is saved locally for visual inspection to ensure all input documents are combined accurately, preserving
+    content and formatting."""
     test_merge_pdfs_params["documentId"] = pdf_doc_id1, pdf_doc_id2
     response = api_session.post(url=merge_pdf_url,
                                 params=test_merge_pdfs_params,
@@ -600,18 +772,16 @@ def test_merge_pdfs(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder("../downloads/merge-pdf")
-    #save_decoded_file((response.json())['data'], 'pdf', '../downloads/merge-pdf/merged_pdf')
+    '''create_folder("../downloads/merge-pdf")
+    save_decoded_file((response.json())['data'], 'pdf', '../downloads/merge-pdf/merged_pdf')'''
 
 
+# @pytest.mark.skip("Skipping for now")
 @pytest.mark.run(order=21)
 def test_download_zip(api_session):
-    """This test case verifies the functionality of an API designed to zip and download documents. The API accepts an
-    array of document IDs as parameters, representing the documents to be zipped. The test validates that the API
-    responds with the expected success status code (e.g., 200) for the download request. Upon successful download,
-    the test saves the zipped file locally on the test machine for visual inspection. The zipped file is then
-    visually inspected to ensure that all input documents have been included in the zip archive and can be extracted
-    without any issues."""
+    """This test case verifies that an API correctly zips and downloads documents given an array of document IDs. It
+    ensures the API responds with a success status code (e.g., 200). The test then saves the downloaded zip file
+    locally for visual inspection to confirm all input documents are included and can be extracted without issues."""
     test_download_zip_params["documentIds"] = pdf_doc_id1, pdf_doc_id2
     response = api_session.post(url=download_zip_url,
                                 params=test_download_zip_params,
@@ -620,10 +790,11 @@ def test_download_zip(api_session):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    #create_folder("../downloads/download-zip")
-    #save_decoded_file((response.json())['data'], 'zip', '../downloads/download-zip/zip_file')
+    '''create_folder("../downloads/download-zip")
+    save_decoded_file((response.json())['data'], 'zip', '../downloads/download-zip/zip_file')'''
 
 
+'''
 # Fav / Arc / Trash
 # @pytest.mark.skip(reason="skipping for now")
 @pytest.mark.parametrize("action", actions)
@@ -666,7 +837,7 @@ def test_make_folder_fav_arch_trs(api_session, action):
     action (setting as a favorite) is performed as expected.
     """
     test_make_folder_fav_arch_trs_json["action"] = action
-    test_make_folder_fav_arch_trs_json["ids"] = [dir_id]
+    test_make_folder_fav_arch_trs_json["ids"] = [manual_dir_id]
 
     response = api_session.put(url=make_fav_arc_trs_url,
                                json=test_make_folder_fav_arch_trs_json,
@@ -675,7 +846,7 @@ def test_make_folder_fav_arch_trs(api_session, action):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    id_validation = api_obj.validate_key_value(response.json(), 'id', dir_id)
+    id_validation = api_obj.validate_key_value(response.json(), 'id', manual_dir_id)
     action_validation = api_obj.validate_key_value(response.json(), action, True)
     folder_name_validation = api_obj.validate_key_value(response.json(), 'folderName', updated_folder_name)
     folder_path_validation = api_obj.validate_key_value(response.json(), 'folderPath',
@@ -734,7 +905,7 @@ def test_get_all_fav_arch_trs_folder(api_session, action):
     response.raise_for_status()
     assert (response.json())['message'] == "success"
     assert len((response.json())['data']) != 0, "Empty Response"
-    id_validation = api_obj.validate_key_value(response.json(), 'id', dir_id)
+    id_validation = api_obj.validate_key_value(response.json(), 'id', manual_dir_id)
     folder_name_validation = api_obj.validate_key_value(response.json(), 'folderName', updated_folder_name)
     folder_path_validation = api_obj.validate_key_value(response.json(), 'folderPath',
                                                         f"/IDOC_Filesystem/workspace/manualworkspace/{updated_folder_name}")
@@ -743,7 +914,7 @@ def test_get_all_fav_arch_trs_folder(api_session, action):
                   f"Unable to fetch folder {updated_folder_name}", locals())
 
 
-'''
+
 # Permanent Delete
 @pytest.mark.skip(reason="skipping as permanent delete will not be part of IDOCX")
 @pytest.mark.run(order=25)
@@ -779,7 +950,7 @@ def test_delete_folder_fav_arch_trs(api_session):
     deleted and their type (document or folder). The purpose of this test is to verify that the API successfully
     processes the deletion request and removes the specified items from the system.
     """
-    test_delete_folder_fav_arch_trs_json["ids"] = [dir_id]
+    test_delete_folder_fav_arch_trs_json["ids"] = [manual_dir_id]
     response = api_session.delete(url=delete_fav_arc_trs_url,
                                   json=test_delete_folder_fav_arch_trs_json,
                                   headers=header)
@@ -790,10 +961,8 @@ def test_delete_folder_fav_arch_trs(api_session):
     res = api_obj.validate_key_value(response.json(), 'data', "Successfully deleted the :folder")
 
     if res:
-        print(f"PASSED: Successfully deleted folder {dir_id}")
+        print(f"PASSED: Successfully deleted folder {manual_dir_id}")
     else:
-        raise Exception(f"FAILED: Unable to delete the  folder {dir_id}")
+        raise Exception(f"FAILED: Unable to delete the  folder {manual_dir_id}")
 
 '''
-
-
