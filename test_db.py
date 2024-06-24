@@ -28,8 +28,8 @@ def extract_error_message(text):
 
 def get_db_connection():
     return mysql.connector.connect(
-        # host="host.docker.internal",
-        host="localhost",
+        host="host.docker.internal",
+        # host="localhost",
         user="root",
         password="Sirma@123",
         database="testdb"
