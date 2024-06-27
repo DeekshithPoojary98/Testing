@@ -3,14 +3,15 @@ from endpoints import *
 
 username = "DEEKSHITH"
 password = "Sirma@123"
+notification_emails = ["deekshith.p@sirmaindia.com", "swaraj.m@sirmaindia.com", "iborg.automation@sirmaindia.com"]
 
-folder_name = f"API_test_{random.randint(1000, 10000)}"
-cifID = random.randint(1000, 10000)
-pdf_file_name = "sample.pdf"
+folder_name = f"API_test_{random.randint(1, 100000)}"
+cifID = random.randint(1, 10000)
+pdf_file_name = "sample_test.pdf"
 pdf_page_count = 10
-updated_file_name = "UpdatedTestingFile"
-updated_folder_name = folder_name + "_updated"
-document_password = "123456"
+updated_file_name = f"UpdatedTestingFile_{random.randint(1, 100000)}.pdf"
+updated_folder_name = folder_name + f"_updated_{random.randint(1, 100000)}"
+document_password = "A12345678"
 old_tag = "OldTag"
 new_tag = "NewTag"
 new_remarks = "NewRemarks"
@@ -20,8 +21,11 @@ actions = ['favourite', 'archive', 'trash']
 file_formats = ["jpeg", "png", "doc", "txt", "docx", "xlsx", "tiff"]
 search_filters = ["isEqualTo", "contains", "beginsWith", "endsWith", "notContains"]
 workspace_field_names = ['blank_foldername', 'blank_filepath', 'character_limit', 'file_already_exists']
-file_upload_field_names = ['blank_filepath', 'blank_foldername', 'blank_tag', 'blank_files', 'blank_remarks', 'invalid_workspacetype']
+file_upload_field_names = ['blank_filepath', 'blank_foldername', 'blank_tag', 'blank_files', 'blank_remarks',
+                           'invalid_workspacetype']
 workspaces = ["AUTOWORKSPACE", "MANUALWORKSPACE"]
+extensions = [".jpeg", ".png", ".doc", ".txt", ".docx", ".xlsx", ".tiff"]
+
 password_validations = {
     "correct_password": (document_password, True),
     "wrong_password": ("123", False)
@@ -45,8 +49,8 @@ test_upload_data = {'filePath': f'/IDOC_Filesystem/workspace/manualworkspace/{fo
 
 test_upload_file = [
     ('files', (
-        "sample.pdf",
-        open("sample.pdf", 'rb'),
+        "sample_test.pdf",
+        open("sample_test.pdf", 'rb'),
         'application/pdf')),
     ('files', (
         "sample_txt.txt",
@@ -72,14 +76,72 @@ test_upload_file = [
 
 test_get_documents_params = {"filePath": f'/IDOC_Filesystem/workspace/manualworkspace/{folder_name}'}
 
-test_search_file_params = {
+test_search_manualworkspace_filename_params = {
     "searchOn": 'DOCUMENT',
     "field": "fileName",
     "filter": None,
-    "workspace": "MANUALWORKSPACE",
+    "workspace": None,
     "value": pdf_file_name,
     "operator": None,
-    "size": 500
+    "size": 2000
+}
+
+test_search_manualworkspace_documentid_params = {
+    "searchOn": "DOCUMENT",
+    'workspace': None,
+    'field': "documentId",
+    'filter': None,
+    'value': None,
+    "operator": None,
+    "size": 2000
+}
+
+test_search_manualworkspace_extension_params = {
+    "searchOn": "DOCUMENT",
+    'workspace': None,
+    'field': "extension",
+    'filter': None,
+    'value': None,
+    "operator": None,
+    "size": 2000
+}
+
+test_search_manualworkspace_tags_params = {
+    "searchOn": "DOCUMENT",
+    'workspace': None,
+    'field': "tags",
+    'filter': None,
+    'value': new_tag,
+    "operator": None,
+    "size": 2000
+}
+
+test_search_manualworkspace_folderpath_params = {
+    "searchOn": "FOLDER",
+    'workspace': None,
+    'field': "folderPath",
+    'filter': None,
+    'value': f"/IDOC_Filesystem/workspace/manualworkspace/{updated_folder_name}",
+    "operator": None,
+    "size": 2000
+}
+
+test_search_manualworkspace_foldername_params = {
+    "searchOn": "FOLDER",
+    'workspace': None,
+    'field': "folderName",
+    'filter': None,
+    'value': updated_folder_name
+}
+
+test_search_manualworkspace_folderid_params = {
+    "searchOn": "FOLDER",
+    'workspace': None,
+    'field': "folderId",
+    'filter': None,
+    'value': None,
+    "operator": None,
+    "size": 2000
 }
 
 test_update_file_name_json = {
@@ -104,7 +166,6 @@ test_update_file_is_verified_json = {
     "id": None,
     "isVerified": 'true'
 }
-
 
 test_update_file_password_json = {
     "id": None,
@@ -140,14 +201,14 @@ test_get_all_fav_arch_trs_file_params = {
     "action": None,
     "resourceType": "document",
     "pageNo": 0,
-    "pageSize": 500
+    "pageSize": 2000
 }
 
 test_get_all_fav_arch_trs_folder_params = {
     "action": None,
     "resourceType": "folder",
     "pageNo": 0,
-    "pageSize": 500
+    "pageSize": 2000
 }
 
 test_delete_file_fav_arch_trs_json = {
@@ -221,4 +282,16 @@ test_cases = {
     "blank_files": ("files", [], "Files cannot be null"),
     "blank_remarks": ("remarks", "", "Remarks are required"),
     "invalid_workspaceType": ("workspaceType", "InvalidWorkSpace", "Invalid workspaceType field")
+}
+
+test_send_email_json = {
+    "toEmails": ["deekshith.p@sirmaindia.com", "swaraj.m@sirmaindia.com", "iborg.automation@sirmaindia.com"],
+    "filePath": [
+        f"/IDOC_Filesystem/workspace/manualworkspace/{updated_folder_name}/{updated_file_name}",
+        f"/IDOC_Filesystem/workspace/manualworkspace/{updated_folder_name}/dummy.pdf",
+        f"/IDOC_Filesystem/workspace/manualworkspace/{updated_folder_name}/sample_image.png",
+        f"/IDOC_Filesystem/workspace/manualworkspace/{updated_folder_name}/sample_tiff.tiff",
+        f"/IDOC_Filesystem/workspace/manualworkspace/{updated_folder_name}/sample_txt.txt",
+        f"/IDOC_Filesystem/workspace/manualworkspace/{updated_folder_name}/sample_xlsx.xlsx"
+    ]
 }
