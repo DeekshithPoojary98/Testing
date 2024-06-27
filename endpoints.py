@@ -37,3 +37,7 @@ xlsx_file_to_pdf_url = base_url + "/v1/conversions/xlsx-pdf"
 image_to_pdf_url = base_url + "/v1/conversions/image-pdf"
 merge_pdf_url = base_url + "/v1/conversions/pdf-merger"
 download_zip_url = base_url + "/v1/conversions/download-zip"
+
+# notifications
+send_email_url = base_url + "/v1/send-email"
+drive_link_url = base_url + "/v1/drive-link"
